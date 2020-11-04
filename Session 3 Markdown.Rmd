@@ -1,0 +1,109 @@
+---
+title: "Session 3 Markdown"
+author: "Robert Atkinson"
+date: "04/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this exercise flight data for planes departing from New York City airport will be used to calculate which destinations have on average the longest delay time. 
+
+
+
+## Load R Libraries
+
+```{r}
+library(tidyverse)
+library(knitr)
+
+
+
+```
+
+## Add Flight Data
+
+- Load flight data for planes arrving and departing New York City airport.
+  - Select just the flights from this data
+  
+  Pre-requisites: ensure nycflights13 package has been installed, if not run: **install.packages("nycflights13")**
+  
+```{r, warning=FALSE, messages=FALSE} 
+
+library(nycflights13)
+
+
+flights_from_nyc <- nycflights13::flights
+
+```
+
+## Analysis
+
+### To show the results of the analysis a table will be created, 
+### illustrating the average departure delay for the 5 most delayed destinations.
+
+
+1. Start from the flights_from_nyc data.
+2. Select origin, destination, departure delay, year, month, and day.
+3. Filter only rows referring to flights in November.
+4. Filter only rows where departure delay is not NA.
+6. Group by destination.
+7. Calculated the average delay per destination.
+8. Add a column with the delay calculated in hours (minutes over 60).
+9. Sort the table by descending delay (note that - is used before the column name).
+10. Only show the first 5 rows.
+11. Create a well-formatted table.
+
+
+
+```{r, warning=FALSE, messages=FALSE}
+
+flights_from_nyc %>%
+  # Select origin, destination, departure delay, year, month, and day.
+  dplyr::select(origin, dest, year, month, day, dep_delay) %>%
+  
+  # Filter only rows referring to flights in November.
+  dplyr::filter(month == 11) %>%
+  
+  # Filter only rows where departure delay is not NA.
+  dplyr::filter(!is.na(dep_delay)) %>%
+  
+  # Group by destination.
+  dplyr::group_by(dest) %>%
+  
+  # Calculate the average delay per destination.
+  dplyr::summarize(
+    avg_dep_delay = mean(dep_delay)
+  ) %>%
+  
+  # Add a column with the delay calculated in hours (minutes over 60).
+  dplyr::mutate(
+    avg_dep_delay_hours = avg_dep_delay / 60
+  ) %>%
+  
+  # Sort the table by descending delay
+  dplyr::arrange(-avg_dep_delay_hours) %>%
+  
+  # Only show the first 5 rows.
+  dplyr::slice_head(n = 5) %>%
+  
+  # Create a well-formatted table.
+  knitr::kable()
+```
+
+ 
+
+
+```{r, echo=FALSE}
+rm(list = ls())
+```
+
+
+## Conclusion
+
+To conclude, the 5 most delayed flights from New York City airport are to the destinations: South Bend Internation (SBN), Bradley International (BDL), Akron-Canton (CAK), Birmingham (BHM), and Des Moines International (DSM). The average of 4 of these is less than 30 minutes. However, South Bend International (SBN) is, on avergae, delayed by more than twice any other destination. With an avergage departure delay of 1.125, equating to 67.5 minutes. 
+ 

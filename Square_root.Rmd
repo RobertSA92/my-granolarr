@@ -1,0 +1,33 @@
+---
+title: "Pracitcal_224"
+author: "Robert Atkinson"
+date: "04/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Pipe example
+
+This is my first [RMarkdown](https://rmarkdown.rstudio.com/) document.
+
+
+```{r, echo=TRUE}
+library(tidyverse)
+```
+
+The code uses the pipe operator:
+
+- takes 2 as input
+- calculates the square root
+- rounds the value
+    - keeping only two digits
+    
+
+```{r, echo=TRUE}
+2 %>%
+  sqrt() %>%
+  round(digits = 2)
+```
