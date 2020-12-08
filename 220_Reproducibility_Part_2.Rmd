@@ -1,0 +1,152 @@
+---
+title: "220_Reproducibility_Part_2"
+author: "Robert Atkinson"
+date: "04/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this write-up I will be working with the 2011 OAC and the 2015 IMD data.
+
+
+## Loading Packages
+
+
+```{r load_libraries, warning=FALSE, messages=FALSE}
+
+library(tidyverse)
+```
+
+
+## Add Data
+
+Introducing the data that we will use for the analysis.
+
+
+### 2011 OAC
+
+
+The **2011 OAC** data is the Geodemographics Classification derived from the UK's 2011 Census. This data is grouped into Ouptut Area levels which are seperated into smaller groups:
+ 
+- supergroups
+- groups
+- subgroups
+      
+      
+This informaton can be found at the [*Datashine Website*](https://oac.datashine.org.uk/#datalayer=oac11_s&layers=BTTT&zoom=12&lon=-0.1500&lat=51.5200)
+
+
+
+```{r load_2011_OAC, warning=FALSE, messages=FALSE}
+
+leicester_2011OAC <- 
+  readr::read_csv("2011_OAC_Raw_uVariables_Leicester.csv")
+```
+
+
+### 2015 IMD
+The **2015 IMD** data is a series of indexes, representing the reletive deprevation of small areas in England.
+
+
+This information can be found on the [*Government Website*](https://www.gov.uk/government/statistics/english-indices-of-deprivation-2015)
+
+Load the 2015  IMD data:
+
+```{r, load_2015_IMD, warning=FALSE, messages=FALSE}
+
+leicester_IMD2015 <- 
+  readr::read_csv("IndexesMultipleDeprivation2015_Leicester.csv")
+```
+
+### Analysis
+
+ 
+
+First, the IMD data is tidied and converted into a wide format. 
+
+- Use filter to retrieve just the Decile data.
+- Tidy data by removing brackets and punctuation.
+- Convert the table into a wide format.
+- Remove columns that are no longer needed.
+
+
+```{r}
+
+#wider data
+leicester_IMD2015_decile_wide <- leicester_IMD2015 %>%
+  # Select only Scores
+  dplyr::filter(Measurement == "Decile") %>%
+  
+  # Trim names of IndicesOfDeprivation
+  dplyr::mutate(IndicesOfDeprivation = 
+                  str_replace_all(IndicesOfDeprivation, "\\s", "")) %>%
+  dplyr::mutate(IndicesOfDeprivation = 
+                  str_replace_all(IndicesOfDeprivation, "[:punct:]", "")) %>%
+  dplyr::mutate(IndicesOfDeprivation =
+                  str_replace_all(IndicesOfDeprivation, "\\(", "")) %>%
+  dplyr::mutate(IndicesOfDeprivation =
+                  str_replace_all(IndicesOfDeprivation, "\\)", "")) %>%
+  
+  # Convert data into wide format
+  pivot_wider(
+    names_from = IndicesOfDeprivation,
+    values_from = Value
+  ) %>%
+  
+  # Drop columns
+  dplyr::select(-DateCode, -Measurement, -Units)
+```
+
+
+### Join both dataframes
+
+- use an inner join to combine the two dataframes
+- use Lower Layer Super Output Area as 2nd colum in new table
+
+```{r}
+leicester_2011OAC_IMD2015 <- 
+  leicester_2011OAC %>%
+  inner_join(
+    leicester_IMD2015_decile_wide, 
+    by = c("LSOA11CD" = "FeatureCode")
+  )
+```
+
+
+### Create table 
+
+- Filter data so to retrieve only the Lower Level Super Output Area that contains the University of Leicester (E01013649).
+- Select Output Area, Lower Level Output Area, Supergroup name, IMD, and total population. 
+- Creat a well-formated tavle
+
+
+```{r}
+
+leicester_2011OAC_IMD2015 %>%
+  # Retrieve Lower Level Output Area for area around University of Leicester
+  dplyr::filter(LSOA11CD == "E01013649") %>%
+  
+  # Select Output Area, Lower Level Output Area, Supergroup name, IMD, and total population. 
+  dplyr::select(OA11CD, LSOA11CD, supgrpname,
+                IndexofMultipleDeprivationIMD, Total_Population) %>%
+  
+  # Create table
+  knitr::kable()
+```
+
+
+
+```{r, echo=FALSE}
+rm(list = ls())
+```
+
+
+## Conclusion
+
+To conclude, the 5 Output Areas that make up the Lower Level Super Output Area where the Unversity of Leicester resides are all classified as Cosmopolitan. With regards to thee Index of Multiple Deprivation, all areas have alocated a score of 5. This score indicates that all these neighbourhoods have a relative deprivation of between 40% and 50% according to the Ministry of Housing, Communities & Local Government. 
+
+
+ 
