@@ -1,0 +1,304 @@
+---
+title: "Practical_324"
+author: "Robert Atkinson"
+date: "07/12/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## load libraries
+```{r load libraries, echo=TRUE}
+
+library(tidyverse)
+library(magrittr)
+library(psych)
+library(stargazer)
+library(zoo)
+library(car)
+library(lmtest)
+library(lm.beta)
+```
+
+
+## load data
+```{r}
+
+leicester_2011OAC <- readr::read_csv("2011_OAC_Raw_uVariables_Leicester.csv")
+
+```
+
+
+
+
+# Exercise 324.1
+
+## Question 324.1.1: 
+
+Create a model having as outcome variable the presence of people using private transport for commuting to work, and using a stepwise “both” approach, having all the variables created for the example above and related to the presence of people working in different industry sectors (perc_u141 to perc_u158) as scope.
+
+```{r}
+# Select and
+# normalise variables
+leicester_2011OAC_transp_q1 <-
+leicester_2011OAC %>%
+dplyr::select(
+OA11CD,
+Total_Pop_No_NI_Students_16_to_74, Total_Employment_16_to_74,
+u121, u141:u158
+) %>%
+# percentage method of travel
+dplyr::mutate(
+u121 = (u121 / Total_Pop_No_NI_Students_16_to_74) * 100
+) %>%
+# percentage across industry sector columns
+dplyr::mutate(
+dplyr::across(
+u141:u158,
+function(x){ (x / Total_Employment_16_to_74) * 100 }
+)
+) %>%
+# rename columns
+dplyr::rename_with(
+function(x){ paste0("perc_", x) },
+c(u121, u141:u158)
+)
+```
+
+```{r echo=TRUE, warning=FALSE}
+
+library(MASS)
+# Selected variables
+# perc_u120: Method of Travel to Work, Private Transport
+# perc_u142: Industry Sector, Mining and quarrying
+# perc_u144: Industry Sector, Electricity, gas, steam and air conditioning ...
+# perc_u146: Industry Sector, Construction
+# perc_u149: Industry Sector, Accommodation and food service activities
+# Create model
+commuting_model_q1 <-
+leicester_2011OAC_transp_q1 %$%
+stepAIC(
+  object = 
+lm(perc_u121 ~ 1),
+scope =
+perc_u121 ~
+  perc_u141 + perc_u142 + perc_u143 + perc_u144 + perc_u145 + perc_u146 + perc_u147 + perc_u148 + perc_u149 +
+  perc_u150 + perc_u151 + perc_u152 + perc_u153 + perc_u154 + perc_u155 + perc_u156 + perc_u157 + perc_u158
+)
+# Print summary
+stargazer(commuting_model_q1, type = "text")
+
+```
+
+
+
+```{r}
+commuting_model_q1 %>%
+rstandard() %>%
+stats::shapiro.test()
+```
+
+
+Overall, we can say that the delay model computed above is fit (F(13, 955) = 74.83, p < .001), indicating
+that the model might account for  49.79% of the people who use private tansport to commute. However the model is not
+robust. The residuals are not homoscedastic (Breusch-Pagan test, BP = 27.606, p < .01),
+and are not independent (Durbin-Watson test, DW = 1.8471, p < 0.01), but they are normally
+distributed (Shapiro-Wilk test, W = 0.99618, p < 0.01).
+
+
+
+```{r}
+commuting_model_q1 %>%
+lmtest::bptest()
+```
+
+
+
+```{r}
+commuting_model_q1 %>%
+lmtest::dwtest()
+```
+
+
+## Question 324.1.2: 
+
+Is the presence of people using public transportation to commute to work statistically, linearly related to mean age (u020)?
+
+
+```{r}
+
+# Select and normalise variables
+leicester_2011OAC_transp_q2 <-
+leicester_2011OAC %>%
+dplyr::select(
+OA11CD,
+Total_Pop_No_NI_Students_16_to_74, Total_Employment_16_to_74,
+u020, u120
+) %>%
+# percentage method of travel
+dplyr::mutate(
+perc_u020 = (u020/ Total_Pop_No_NI_Students_16_to_74) * 100,  
+perc_u120 = (u120/ Total_Pop_No_NI_Students_16_to_74) * 100
+) 
+
+```
+
+
+
+
+#### Check assumptions for Pearson's
+
+
+```{r}
+
+leicester_2011OAC_transp_q2 %$% perc_u020 %>%
+stats::shapiro.test()
+
+leicester_2011OAC_transp_q2 %>%
+  ggplot2::ggplot(mapping = aes(x = perc_u020)) +
+  ggplot2::geom_histogram(bins = 30) + 
+  ggplot2::theme_gray()
+```
+
+Not normally distributed. 
+
+```{r perc_120 test for normal distribution}
+leicester_2011OAC_transp_q2 %$% perc_u120 %>%
+stats::shapiro.test()
+
+leicester_2011OAC_transp_q2 %>%
+  ggplot2::ggplot(mapping = aes(x = perc_u120)) +
+  ggplot2::geom_histogram(bins = 30) + 
+  ggplot2::theme_gray()
+```
+
+Is normally distributed. 
+
+
+
+```{r}
+
+log_mean_age <- leicester_2011OAC_transp_q2 %>%
+mutate(log10_u020 = log10(perc_u020))
+
+  
+log_public_commute <- leicester_2011OAC_transp_q2 %>%
+mutate(log10_u120 = log10(perc_u120))
+
+
+log_mean_age %$% log10_u020 %>%
+stats::shapiro.test()
+
+log_public_commute %$% perc_u120 %>%
+stats::shapiro.test()
+```
+Both variables are not normaly distributed after logarithmic transformation. 
+
+
+Pearson's can't be used as both variables need to be norally distributed. 
+
+#### Check Spearson's assumptions
+
+```{r}
+ties_check_mean_age <-
+leicester_2011OAC_transp_q2 %>%
+dplyr::count(perc_u020) %>%
+dplyr::filter(n > 1) %>%
+dplyr::count(n()) %>%
+dplyr::pull(n)
+
+ties_check_mean_age
+
+```
+
+```{r}
+ties_check_public_commute <-
+leicester_2011OAC_transp_q2 %>%
+dplyr::count(perc_u120) %>%
+dplyr::filter(n > 1) %>%
+dplyr::count(n()) %>%
+dplyr::pull(n)
+
+ties_check_public_commute
+```
+There are too many ties in the perc_u120 data. Spearson's cannot be used. 
+
+
+#### Kendall's Tau
+
+
+```{r}
+ 
+
+kendall_mean_age_public_commute <-
+leicester_2011OAC_transp_q2 %$%
+stats::cor.test(
+perc_u020, perc_u120,
+method = "kendall"
+)
+
+kendall_mean_age_public_commute
+```
+
+
+Mean age has a very small but significant linear relationship with people using public transportation to commute to work  (Tau = 0.08,  p < 0.001).
+
+
+
+## Question 324.1.3:
+
+Is the presence of people using public transportation to commute to work statistically, linearly related to (a subset of) the age structure categories (u007 to u019)?
+
+
+```{r results='asis', echo = TRUE, warning = FALSE}
+leicester_2011OAC_transp_q3 <-
+leicester_2011OAC %>%
+dplyr::select(
+OA11CD,
+Total_Population, Total_Pop_No_NI_Students_16_to_74, Total_Employment_16_to_74,
+u007:u019, u120
+) %>%
+# percentage method of travel
+dplyr::mutate(
+perc_u120 = (u120/ Total_Pop_No_NI_Students_16_to_74) * 100
+) %>%
+#percentage across industry sector columns
+dplyr::mutate(
+dplyr::across(
+u007:u019,
+function(x){ (x / Total_Population) * 100 }
+)
+) %>%
+
+# rename columns
+dplyr::rename_with(
+function(x){ paste0("perc_", x) },
+c(u007:u019)
+)
+
+leicester_2011OAC_transp_q3 %>%
+dplyr::select(perc_u120, perc_u007, perc_u008, perc_u009, perc_u010, perc_u011, perc_u012, perc_u013, perc_u014, perc_u015, perc_u016, perc_u017, perc_u018, perc_u019) %>%
+psych::pairs.panels(method = "kendal", stars = TRUE)
+ 
+
+commuting_model_q3 <-
+leicester_2011OAC_transp_q3 %$%
+stats::lm(
+perc_u120 ~ perc_u013) 
+
+
+# Print summary
+stargazer(commuting_model_q3, type = "text")
+
+
+```
+
+Age 25 - 29 (u012) has a small but significant linear relationship with people using public transportation to commute to work  (Tau = 0.11,  p < 0.001).
+
+Age 30 - 44 (u013) also has a small but significant linear relationship with people using public transportation to commute to work  (Tau = 0.14,  p < 0.001).
+
+
+
