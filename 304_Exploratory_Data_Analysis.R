@@ -15,7 +15,7 @@ leicester_lookup <- read_csv("2011_OAC_Raw_uVariables_Lookup (1).csv")
 
 
 # Bar graph ---------------------------------------------------------------
-
+ 
 
 leicester_2011OAC %>%
   ggplot2::ggplot(
