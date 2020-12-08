@@ -4,24 +4,23 @@ author: "Robert Atkinson"
 date: "16/11/2020"
 output: pdf_document
 ---
- 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
 
-# Libraries
+
+## Load Libraries
+
 
 library(tidyverse)
 library(knitr)
 install.packages("farver")
 
 
-# Data 
+## Load Data 
 
 leicester_2011OAC <- read_csv("2011_OAC_Raw_uVariables_Leicester.csv")
-```
-
-
-
 
 
 ```{r, echo=TRUE, message=FALSE, warning=FALSE, fig.height = 4}
