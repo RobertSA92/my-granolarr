@@ -7,20 +7,21 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-
-## Load Libraries
-
+# Libraries
 
 library(tidyverse)
 library(knitr)
 install.packages("farver")
 
 
-## Load Data 
+# Data 
 
 leicester_2011OAC <- read_csv("2011_OAC_Raw_uVariables_Leicester.csv")
+```
+
+
+
 
 
 ```{r, echo=TRUE, message=FALSE, warning=FALSE, fig.height = 4}
